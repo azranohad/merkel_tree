@@ -63,15 +63,20 @@ class Merkle_Tree:
             result = result + " " + B
             return result
 
+    def merge_string(self, arri,  string):
+        if arri[0] == '0':
+            return self.getHashValue(arri[1:] + string)
+        elif arri[0] == '1':
+            return self.getHashValue(string + arri[1:])
+
     def check_inclusion(self, value, hash):
         arr_hash = hash.split()
         hash_node = self.getHashValue(value)
-        s = str(hash_node + arr_hash[1])
-        p_calc = self.getHashValue(s)
+        p_calc = self.merge_string(arr_hash[1], hash_node)
         for i in range(2, len(arr_hash)):
-            hash_node = self.getHashValue(p_calc)
-            p_calc = self.getHashValue(hash_node + arr_hash[i])
-        if p_calc is arr_hash[0]:
+            hash_node = p_calc
+            p_calc = self.merge_string(arr_hash[i], hash_node)
+        if p_calc == arr_hash[0]:
             return True
         else:
             return False
@@ -95,6 +100,15 @@ def main():
         proof0 = mt.getProof(0)
         proof2 = mt.getProof(2)
         check1 = mt.check_inclusion("a", "d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a 13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d 12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6")
+        check2 = mt.check_inclusion("b", "d71dc32fa2cd95be60b32dbb3e63009fa8064407ee19f457c92a09a5ff841a8a 13e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d 12e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6")
+        mt.add_leave("d")
+        root4 = mt.getRoot()
+        mt.add_leave("e")
+        root5 = mt.getRoot()
+        mt.add_leave("f")
+        root6 = mt.getRoot()
+        mt.add_leave("g")
+        root7 = mt.getRoot()
         x = 3
 
 
