@@ -22,20 +22,18 @@ class Merkle_Tree:
     def __init__(self):
         self.leaves_on = []
         self.root = None
+        self.default_levels = []
         self.max = self.hex_to_int("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-        ##self.max = self.hex_to_int("f")
 
 
 
     def create_tree(self):
-        ##l = self.getHashValue("0")
         l = "0"
-        s = "0 256\n"
-        for i in range (256):
+        for i in range (257):
+            self.default_levels.append(l)
             l = self.getHashValue(l + l)
-            index =str(255 - i)
-            s = s + l +" " + index +"\n"
-        root = Node(l)
+        self.default_levels.reverse()
+        root = Node (self.default_levels[0])
         root.start = 0
         root.end = self.max
         root.level = 0
@@ -46,10 +44,10 @@ class Merkle_Tree:
     def change_path(self, leave):
         temp = leave
         check = self.getHashValue("0")
-        default_level = "0"
+        level = 256
         while temp.parent is not None:
+            default_level = self.default_levels[level]
             p = temp.parent
-            c = self.getHashValue(default_level)
             if p.left is temp:
                 if p.right is None or p.right.value is default_level:
                     p.set_value(self.getHashValue(p.left.value + default_level))
@@ -61,27 +59,26 @@ class Merkle_Tree:
                 else:
                     p.set_value(p.left.value + p.right.value)
             check = self.getHashValue(check + check)
+            level = level - 1
             temp = temp.parent
-            ##pppp = "0"
-            ##if (self.root.value != "60803f6b16c86ae695b1d62d6f3693e658a3278a656d698382c92bad8bfb14cf"):
-            ##    pppp = self.getHashValue(p.hashValue + p.hashValue)
-            ##if (p.value == "60803f6b16c86ae695b1d62d6f3693e658a3278a656d698382c92bad8bfb14cf"):
-            ##    x = 5
-            default_level = self.getHashValue(default_level+default_level)
 
     def find_leave(self, leave):
         val = self.hex_to_int(leave)
-        self.leaves_on.append(self.hex_to_int(leave))
-        self.leaves_on.sort()
+        ##self.leaves_on.append(self.hex_to_int(leave))
+        ##self.leaves_on.sort()
         start = int(0)
         end = int (self.max)
         temp = self.root
+        level = 1
+
         while (temp.end > temp.start):
+            default_level = self.default_levels[level]
+
             half = int((temp.end - temp.start) // 2)
             half = int(temp.start + half)
             if val <= half:
                 if temp.left is None:
-                    temp.left = Node("None")
+                    temp.left = Node(default_level)
                     temp.left.level = temp.level+1
                     temp.left.start = temp.start
                     temp.left.end = half
@@ -89,13 +86,19 @@ class Merkle_Tree:
                 temp = temp.left
             else:
                 if temp.right is None:
-                    temp.right = Node("None")
+                    temp.right = Node(default_level)
                     temp.right.level = temp.level+1
                     temp.right.start = half+1
                     temp.right.end = temp.end
                     temp.right.parent = temp
                 temp = temp.right
-        temp.set_value("0")
+            level = level + 1
+        ##if temp.parent.left is None:
+          ##  temp.parent.left = Node("0")
+          ##  temp.parent.left.level = 256
+        ##if temp.parent.right is None:
+        ##    temp.parent.right = Node("0")
+        ##    temp.parent.left.level = 256
         return temp
 
     def add_leave(self, leave):
@@ -108,38 +111,47 @@ class Merkle_Tree:
         return self.root.value
 
     def getProof(self, leave):
-        leave_p = self.find_leave(leave)
-        self.change_path(leave_p)
-        default_level = "0"
+        node = self.find_leave(leave)
+        ##self.change_path(leave_p)
+        level = 255
 
         result = self.root.value
         B = ""
-
-        node = leave_p
+        if self.root.value is self.default_levels[0]:
+            result = result + " " + result
+            return result
         p = node.parent
         while p is not None:
-            if p.left is node:
-                if p.right is None:
-                    B = B + " " + self.getHashValue(default_level)
-                else:
-                    B = B + " " + p.right.hashValue
-            else:
-                if p.left is None:
-                    B = B + " " + self.getHashValue(default_level)
-                else:
-                    B = B + " " + p.left.hashValue
+            default_level = self.default_levels[level]
+
+            if p.value is not default_level:
+                if p.left is node:
+                    if p.right is None:
+                        B = B + " " + self.default_levels[level+1]
+                    else:
+                        if p.left is None:
+                            B = B + " " + self.default_levels[level + 1]
+                        else:
+                            B = B + " " + p.left.value
+                        B = B + " " + p.right.value
+
+                elif p.right is node:
+                    if p.left is None:
+                        B = B + " " + self.default_levels[level+1]
+                    else:
+                        if p.right is None:
+                            B = B + " " + self.default_levels[level + 1]
+                        else:
+                            B = B + " " + p.right.value
+                        B = B + " " + p.left.value
+
             node = p
             p = p.parent
-            result = result + " " + B
-            default_level = self.getHashValue(default_level + default_level)
-
+            level = level - 1
+        result = result + " " + B
         return result
 
-    def merge_string(self, arri,  string):
-        if arri[0] == '0':
-            return self.getHashValue(arri[1:] + string)
-        elif arri[0] == '1':
-            return self.getHashValue(string + arri[1:])
+
 
     def check_inclusion(self, value, hash):
         arr_hash = hash.split()
@@ -173,8 +185,10 @@ def main():
         proof1 = mt.getProof("0000000000000000000000000000000000000000000000000000000000000000")
         mt.add_leave("0000000000000000000000000000000000000000000000000000000000000000")
         root2 = mt.getRoot()
-        proof2 = mt.getProof("0000000000000000000000000000000000000000000000000000000000000001")
-        proof3 = mt.getProof("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+        proof2 = mt.getProof("0000000000000000000000000000000000000000000000000000000000000000")
+        proof3 = mt.getProof("0000000000000000000000000000000000000000000000000000000000000001")
+
+        proof4 = mt.getProof("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
         #mt.add_leave("0000000000000000000000000000000000000000000000000000000000010000")
         mt.add_leave("0000000000000000000000000000000000000000000000000000000000000001")
