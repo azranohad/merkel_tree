@@ -45,7 +45,7 @@ class Merkle_Tree:
         self.root = level_nodes[0]
 
     def getRoot(self):
-        return self.root
+        return self.root.hashValue
 
     def getProof(self, index):
         result = self.getRoot().hashValue
